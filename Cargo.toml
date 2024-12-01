@@ -1,0 +1,14 @@
+[package]
+name = "redirect_url"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.93"
+axum = "0.7.9"
+dotenv = "0.15.0"
+serde = {version="1.0.215",features=["derive"]}
+tokio = {version="1.41.1",features=["full"]}
+sqlx = {version = "0.8.0", features = ["postgres", "macros", "runtime-tokio", "time", "uuid", "chrono"]}
+idna = "=1.0.2"
+
