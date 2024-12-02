@@ -1224,6 +1224,7 @@ dependencies = [
  "dotenv",
  "idna 1.0.2",
  "serde",
+ "serde_json",
  "sqlx",
  "tokio",
 ]

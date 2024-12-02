@@ -1,8 +1,8 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use anyhow::Result;
-use axum::{ extract::{Path, State}, response::{IntoResponse, Redirect}, routing::{get, put}, Json, Router};
-use serde::Deserialize;
+use axum::{ body::Body, extract::{Path, State}, http::{header::CONTENT_TYPE, StatusCode}, response::{IntoResponse, Redirect}, routing::{get, put}, Json, Router};
+use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, PgPool};
 
 #[tokio::main]
@@ -21,7 +21,7 @@ async fn main() -> Result<()>{
         memory_store: url_hashmap,
     };
     
-    let db_value:Vec<UrlTableValue> = sqlx::query_as(r#"SELECT name,value, is_active FROM urls"#)
+    let db_value:Vec<UrlListResponse> = sqlx::query_as(r#"SELECT name,value, is_active FROM urls"#)
     .fetch_all(&db_pool)
     .await?;
 
@@ -66,11 +66,25 @@ struct AppState{
    db: PgPool,
    memory_store: Arc<Mutex<HashMap<String,String>>>,
 }
-#[derive(FromRow,Debug)]
-struct UrlTableValue{
+#[derive(FromRow,Debug,Serialize)]
+struct UrlListResponse{
     name:String,
     value:String,
     is_active:bool,
+}
+#[derive(Serialize)]
+struct ResponseVo<T:Serialize>{
+    status:u16,
+    data: Option<T>
+}
+
+impl<T: Serialize> IntoResponse for ResponseVo<T>{
+
+    fn into_response(self) -> axum::response::Response<Body> {
+        let body = serde_json::to_string(&self).unwrap();
+        (StatusCode::from_u16(self.status).unwrap(), [(CONTENT_TYPE, "application/json")], body).into_response()
+    }
+    
 }
 
  async fn add_url(
@@ -123,11 +137,14 @@ async  fn get_url(
 
 async fn get_url_list(
     State(app_state):State<AppState>,
-    ) -> impl IntoResponse {
+    ) -> ResponseVo<Vec<UrlListResponse>>{
         let db_pool = app_state.db;
-        let db_value:Vec<UrlTableValue> = sqlx::query_as(r#"SELECT name,value, is_active FROM urls"#)
+        let db_value:Vec<UrlListResponse> = sqlx::query_as(r#"SELECT name,value, is_active FROM urls"#)
     .fetch_all(&db_pool)
     .await.unwrap();
         println!("{:?}",db_value);
-       //db_value
+       ResponseVo{
+        status:200,
+        data: Some(db_value),
+       }
     }
