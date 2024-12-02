@@ -37,13 +37,10 @@ async fn main() -> Result<()>{
 
 
     let v1_routes = Router::new()
+    .route("/:target_url", get(get_url))
     .route("/add_url", put(add_url))
-    .route("/get_url/:target_url", get(get_url))
     .route("/list", get(get_url_list))
     .with_state(app_state);
-
-    // let app = Router::new()
-    // .nest("/api/link", v1_routes);
 
     println!("test");
 
@@ -115,24 +112,31 @@ impl<T: Serialize> IntoResponse for ResponseVo<T>{
     //     return resp;
     }
 
-   let mut map = app_state.memory_store.lock().unwrap();
-    // println!("{:#?}",params);
- map.insert(params.name,params.url);
-   println!("{:?}",app_state.memory_store);
-   "oK"
-    // Html("Hello <strong>World!!!</strong>") 
+   let map = app_state.memory_store.lock();
+    if map.is_ok(){
+       map.unwrap().insert(params.name,params.url);
+       "oK"
+    }else {
+        println!("{:?}",map.inspect_err(|e| eprintln!("failed to insert url: {e}")));
+        "Error"
+    }
 }
 
 async  fn get_url(
     Path(target_url):Path<String>,
     State(app_state):State<AppState>) -> impl IntoResponse{
-        let set_map: std::sync::MutexGuard<'_, HashMap<String, String>>= app_state.memory_store.lock().unwrap();
-        println!("{:?}",set_map);
-      let name = set_map.get(&target_url).unwrap();
-      println!("name {name}");
-      Redirect::to(name)
-    //   Redirect::to("https://hmagchurch.in")
-    //   return set_map.get(&target_url).unwrap().to_string();
+        let default_url ="https://hmag.go.studio/".to_string();
+        let set_map = app_state.memory_store.lock();
+        if set_map.is_ok(){
+            let map = set_map.unwrap();
+            let name = map.get(&target_url).unwrap_or(&default_url);
+            Redirect::to(&name)
+        }else {
+            println!("{:?}",set_map.inspect_err(|e| eprintln!("failed to insert url: {e}")));
+            Redirect::to(&default_url)
+        }
+        
+      
 }
 
 async fn get_url_list(
