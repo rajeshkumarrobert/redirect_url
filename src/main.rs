@@ -125,7 +125,7 @@ impl<T: Serialize> IntoResponse for ResponseVo<T>{
 async  fn get_url(
     Path(target_url):Path<String>,
     State(app_state):State<AppState>) -> impl IntoResponse{
-        let default_url ="https://hmag.go.studio/".to_string();
+        let default_url ="https://linktr.ee/holymountainag".to_string();
         let set_map = app_state.memory_store.lock();
         if set_map.is_ok(){
             let map = set_map.unwrap();
